@@ -2,7 +2,6 @@ package ca.uhn.fhir.jpa.starter.mappers;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;

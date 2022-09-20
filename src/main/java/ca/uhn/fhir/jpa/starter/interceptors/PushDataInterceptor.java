@@ -76,7 +76,6 @@ public class PushDataInterceptor {
       List<String> columnNameWithoutId = Arrays.stream(parameters.getParameterNames())
           .filter(param -> !param.equals("id")).collect(Collectors.toList());
       String queryString = insertQuery(resourceName, columnNameWithoutId, false);
-      System.out.println(queryString);
       execute(insertQuery(resourceName, columnNameWithoutId, false), parameters);
     } else {
       execute(upsertQuery(resourceName, List.of(parameters.getParameterNames()), false), parameters);
