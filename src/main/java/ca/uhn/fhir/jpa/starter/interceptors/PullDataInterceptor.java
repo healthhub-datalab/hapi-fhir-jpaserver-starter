@@ -71,7 +71,7 @@ public class PullDataInterceptor {
 
       if (req.getMethod().equals(HttpMethod.GET.toString())) {
         /* 3 Delete Mapping table */
-        String deleteSql = String.format("DELETE FROM %s WHERE ts <= ? AND emr = true", resourceName);
+        String deleteSql = String.format("DELETE FROM %s WHERE ts <= ? AND emr = true AND fhir = false", resourceName);
         PreparedStatement deleteStat = conn.prepareStatement(deleteSql);
         deleteStat.setTimestamp(1, latest);
         deleteStat.executeUpdate();
