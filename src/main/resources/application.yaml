@@ -195,5 +195,6 @@ hapi:
 
 mappingtable:
   jdbc: jdbc:postgresql://localhost:5432/poc
+  driver: org.postgresql.Driver
   username: postgres
   password: admin

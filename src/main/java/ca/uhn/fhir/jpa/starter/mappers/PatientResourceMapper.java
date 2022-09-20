@@ -10,6 +10,9 @@ import java.util.Date;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Patient;
 import org.json.simple.JSONObject;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 
 import ca.uhn.fhir.context.FhirContext;
@@ -30,8 +33,8 @@ public class PatientResourceMapper implements IResourceMapper {
   }
 
   @Override
-  public IBaseResource mapToResource(ResultSet table) throws SQLException, IOException {
-    String patientID = table.getString("PatientID");
+  public IBaseResource mapToResource(SqlRowSet table) throws SQLException, IOException {
+    String patientID = table.getString("id");
     String patientGender = table.getString("PatientGender");
     String patientDateOfBirth = table.getString("PatientDateOfBirth");
     String patientRace = table.getString("PatientRace");
@@ -56,35 +59,23 @@ public class PatientResourceMapper implements IResourceMapper {
     StringWriter stringWriter = new StringWriter();
     jsonObj.writeJSONString(stringWriter);
     String fhirText = stringWriter.getBuffer().toString();
-
     return fhirContext.newJsonParser().parseResource(Patient.class, fhirText);
   }
 
   @Override
-  public String mapToTable(IBaseResource resource, DatabaseOperation op) {
+  public SqlParameterSource mapToTable(IBaseResource resource) {
+    MapSqlParameterSource namedParameters = new MapSqlParameterSource();
     Patient patient = (Patient) resource;
     String id = patient.getIdElement() == null ? null : patient.getIdElement().getIdPart();
-    String gender = patient.getGender().getDisplay();
     SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     String birthDate = format.format(patient.getBirthDate());
-    String maritalStatus = patient.getMaritalStatus().getText();
-    String lastUpdated = patient.getMeta().getLastUpdated() == null ? "NULL" : patient.getMeta().getLastUpdated().toString();
+    namedParameters.addValue("id", id);
+    namedParameters.addValue("PatientGender", patient.getGender().getDisplay());
+    namedParameters.addValue("PatientDateOfBirth", birthDate);
+    namedParameters.addValue("PatientMaritalStatus", patient.getMaritalStatus().getText());
+    namedParameters.addValue("ts", patient.getMeta().getLastUpdated());
 
-    boolean deleted = op.equals(DatabaseOperation.DELETE);
-
-    if (id == null) {
-      return String.format(
-          "INSERT INTO Patient (PatientGender, PatientDateOfBirth, PatientMaritalStatus, fhir) VALUES ('%s', '%s', '%s', true);",
-          gender, birthDate, maritalStatus);
-    }
-
-    String updateSql = String.format(
-        "UPDATE Patient SET PatientGender = '%s', PatientDateOfBirth = '%s', PatientMaritalStatus = '%s', deleted = %s, fhir = true WHERE PatientID = '%s' AND ts = '%s';", gender, birthDate, maritalStatus, deleted, id, lastUpdated);
-    String insertSql = String.format(
-        "INSERT INTO Patient (PatientID, PatientGender, PatientDateOfBirth, PatientMaritalStatus, deleted, fhir) VALUES ('%s', '%s', '%s', '%s', %s, true);",
-        id, gender, birthDate, maritalStatus, deleted);
-    return String.format(
-        "IF EXISTS (SELECT 1 FROM Patient WHERE PatientID = '%s') BEGIN %s END ELSE BEGIN %s END", id, updateSql, insertSql);
+    return namedParameters;
   }
-  
+
 }
