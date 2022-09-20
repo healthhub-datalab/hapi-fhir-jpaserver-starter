@@ -21,6 +21,7 @@ import ca.uhn.fhir.jpa.api.dao.DaoRegistry;
 import ca.uhn.fhir.jpa.api.dao.IFhirResourceDao;
 import ca.uhn.fhir.jpa.starter.mappers.IResourceMapper;
 import ca.uhn.fhir.jpa.starter.mappers.ResourceMapperRegistry;
+import ca.uhn.fhir.rest.api.server.RequestDetails;
 
 @Component
 @Interceptor
@@ -42,10 +43,9 @@ public class PullDataInterceptor {
     this.mapperRegistry = mapperRegistry;
   }
 
-  @Hook(Pointcut.SERVER_INCOMING_REQUEST_PRE_PROCESSED)
-  public boolean pullDataBeforeRequest(HttpServletRequest req, HttpServletResponse resp) {
-    String resourceName = req.getRequestURI().split("/")[2];
-
+  @Hook(Pointcut.SERVER_INCOMING_REQUEST_POST_PROCESSED)
+  public boolean pullDataBeforeRequest(RequestDetails details, HttpServletRequest req, HttpServletResponse resp) {
+    String resourceName = details.getResourceName();
 
     try {
       /* 1 Pull mapping table */
