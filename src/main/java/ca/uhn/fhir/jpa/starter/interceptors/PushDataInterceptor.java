@@ -42,7 +42,7 @@ public class PushDataInterceptor {
 
   private String insertQuery(String resourceName, List<String> columns, boolean deleted) {
     List<String> columnValue = columns.stream().map(name -> String.format(":%s", name)).collect(Collectors.toList());
-    return String.format("INSERT INTO %s (%s, fhir, deleted) VALUES (%s, true, %s)", resourceName,
+    return String.format("INSERT INTO %s (%s, emr, fhir, deleted) VALUES (%s, false, true, %s)", resourceName,
         String.join(",", columns), String.join(",", columnValue), deleted);
   }
 
@@ -50,7 +50,9 @@ public class PushDataInterceptor {
     String insertQuery = insertQuery(resourceName, columns, deleted);
     String setter = String.join(",",
         columns.stream().map(param -> String.format("%s = :%s", param, param)).collect(Collectors.toList()));
-    String updateQuery = String.format("UPDATE SET %s, deleted = %s, fhir = true WHERE Patient.ts = :ts", setter,
+    // TODO: Resource.ts cannot be used as unique key in DB
+    String updateQuery = String.format("UPDATE SET %s, deleted = %s, emr = false, fhir = true WHERE Patient.ts = :ts",
+        setter,
         deleted);
     return String.format("%s ON CONFLICT (id) DO %s", insertQuery, updateQuery);
   }

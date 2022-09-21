@@ -56,6 +56,7 @@ public class PullDataInterceptor {
       IFhirResourceDao<IBaseResource> dao = daoRegistry.getResourceDao(resourceName);
       Timestamp latest = null; /* Remember latest timestamp reflected */
       while (result.next()) {
+        String id = result.getString("id");
         Timestamp timestamp = result.getTimestamp("ts");
         if (latest == null || latest.before(timestamp)) {
           latest = timestamp;
@@ -68,11 +69,14 @@ public class PullDataInterceptor {
         } else {
           dao.update(resource);
         }
+        /* Prevent missing new changes by checking timestamp */
+        String updateSql = String.format("UPDATE %s SET emr = false WHERE id = ? AND ts = ?", resourceName);
+        jdbcTemplate.update(updateSql, id, timestamp);
       }
 
       if (req.getMethod().equals(HttpMethod.GET.toString())) {
         /* 3 Delete Mapping table */
-        String deleteSql = String.format("DELETE FROM %s WHERE ts <= ? AND emr = true AND fhir = false", resourceName);
+        String deleteSql = String.format("DELETE FROM %s WHERE ts <= ? AND emr = false AND fhir = false", resourceName);
         jdbcTemplate.update(deleteSql, latest);
       }
       return true;
