@@ -5,9 +5,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.sql.DataSource;
 
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,8 +48,10 @@ public class PushDataInterceptor {
 
   private String upsertQuery(String resourceName, List<String> columns, boolean deleted) {
     String insertQuery = insertQuery(resourceName, columns, deleted);
-    String setter = String.join(",", columns.stream().map(param -> String.format("%s = :%s", param, param)).collect(Collectors.toList()));
-    String updateQuery = String.format("UPDATE SET %s, deleted = %s, fhir = true WHERE Patient.ts = :ts", setter, deleted);
+    String setter = String.join(",",
+        columns.stream().map(param -> String.format("%s = :%s", param, param)).collect(Collectors.toList()));
+    String updateQuery = String.format("UPDATE SET %s, deleted = %s, fhir = true WHERE Patient.ts = :ts", setter,
+        deleted);
     return String.format("%s ON CONFLICT (id) DO %s", insertQuery, updateQuery);
   }
 
@@ -75,7 +74,6 @@ public class PushDataInterceptor {
     if (!resource.getIdElement().hasIdPart()) {
       List<String> columnNameWithoutId = Arrays.stream(parameters.getParameterNames())
           .filter(param -> !param.equals("id")).collect(Collectors.toList());
-      String queryString = insertQuery(resourceName, columnNameWithoutId, false);
       execute(insertQuery(resourceName, columnNameWithoutId, false), parameters);
     } else {
       execute(upsertQuery(resourceName, List.of(parameters.getParameterNames()), false), parameters);

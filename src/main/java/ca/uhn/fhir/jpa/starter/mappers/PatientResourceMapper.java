@@ -25,7 +25,6 @@ public class PatientResourceMapper implements IResourceMapper {
     this.fhirContext = daoRegistry.getSystemDao().getContext();
   }
 
-
   @Override
   public String getResourceName() {
     return "Patient";
@@ -36,10 +35,7 @@ public class PatientResourceMapper implements IResourceMapper {
     String patientID = table.getString("id");
     String patientGender = table.getString("PatientGender");
     String patientDateOfBirth = table.getString("PatientDateOfBirth");
-    String patientRace = table.getString("PatientRace");
     String patientMaritalStatus = table.getString("PatientMaritalStatus");
-    String patientLanguage = table.getString("PatientLanguage");
-    Double patientPopulationPercentageBelowPoverty = table.getDouble("PatientPopulationPercentageBelowPoverty");
 
     JSONObject jsonObj = new JSONObject();
     jsonObj.put("resourceType", "Patient");
@@ -54,7 +50,7 @@ public class PatientResourceMapper implements IResourceMapper {
     Date lastUpdate = table.getDate("ts");
     metaObject.put("lastUpdated", format.format(lastUpdate));
     jsonObj.put("meta", metaObject);
-    
+
     StringWriter stringWriter = new StringWriter();
     jsonObj.writeJSONString(stringWriter);
     String fhirText = stringWriter.getBuffer().toString();
