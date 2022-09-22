@@ -9,6 +9,7 @@ import java.util.Date;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Patient;
 import org.json.simple.JSONObject;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
@@ -31,7 +32,13 @@ public class PatientResourceMapper implements IResourceMapper {
   }
 
   @Override
-  public IBaseResource mapToResource(SqlRowSet table) throws SQLException, IOException {
+  public IBaseResource pullResource(String id, Long version, JdbcTemplate template) throws IOException {
+    String selectStatement = String.format("SELECT * FROM Patient WHERE id = %s AND version = %s", id, version);
+    SqlRowSet table = template.queryForRowSet(selectStatement);
+    if (!table.next()) {
+      // Opimistic locking failed
+    }
+
     String patientID = table.getString("id");
     String patientGender = table.getString("PatientGender");
     String patientDateOfBirth = table.getString("PatientDateOfBirth");
@@ -45,11 +52,7 @@ public class PatientResourceMapper implements IResourceMapper {
     JSONObject maritalObject = new JSONObject();
     maritalObject.put("text", patientMaritalStatus);
     jsonObj.put("maritalStatus", maritalObject);
-    JSONObject metaObject = new JSONObject();
-    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-    Date lastUpdate = table.getDate("ts");
-    metaObject.put("lastUpdated", format.format(lastUpdate));
-    jsonObj.put("meta", metaObject);
+    /* TODO: fill in version */
 
     StringWriter stringWriter = new StringWriter();
     jsonObj.writeJSONString(stringWriter);
@@ -58,19 +61,27 @@ public class PatientResourceMapper implements IResourceMapper {
   }
 
   @Override
-  public SqlParameterSource mapToTable(IBaseResource resource) {
-    MapSqlParameterSource namedParameters = new MapSqlParameterSource();
+  public void pushResource(IBaseResource resource, boolean deleted, JdbcTemplate template) {
     Patient patient = (Patient) resource;
-    String id = patient.getIdElement() == null ? null : patient.getIdElement().getIdPart();
+    String id = patient.getIdElement().hasIdPart() ? patient.getIdElement().getIdPart() : null;
+    String gender = patient.getGender().getDisplay();
     SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     String birthDate = format.format(patient.getBirthDate());
-    namedParameters.addValue("id", id);
-    namedParameters.addValue("PatientGender", patient.getGender().getDisplay());
-    namedParameters.addValue("PatientDateOfBirth", birthDate);
-    namedParameters.addValue("PatientMaritalStatus", patient.getMaritalStatus().getText());
-    namedParameters.addValue("ts", patient.getMeta().getLastUpdated());
+    String maritalStatus = patient.getMaritalStatus().getText();
+    /* TODO: fill in version */
+    String version = "version";
 
-    return namedParameters;
+    if (!resource.getIdElement().hasIdPart()) {
+      /* Newly created resource */
+      String insertStatement = "INSERT INTO Patient (PatientGender, PatientDateOfBirth, PatientMaritalStatus, fhir, deleted) VALUES (?, ?, ?, true, false);";
+      template.update(insertStatement, gender, birthDate, maritalStatus);
+    } else {
+      /* Upsert */
+      String insertStatement = "INSERT INTO Patient (id, PatientGender, PatientDateOfBirth, PatientMaritalStatus, fhir, deleted) VALUES (?, ?, ?, ?, true, ?)";
+      String updateStatement = "UPDATE SET PatientGender = ?, PatientDateOfBirth = ?, PatientMaritalStatus = ?, deleted = ?, fhir = true WHERE Patient.version = ?";
+      String upsertStatement = String.format("%s ON CONFLICT (id) DO %s;", insertStatement, updateStatement);
+      template.update(upsertStatement, id, gender, birthDate, maritalStatus, deleted, gender, birthDate, maritalStatus, deleted, version);
+    }
   }
 
 }
