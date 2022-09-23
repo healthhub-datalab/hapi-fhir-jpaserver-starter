@@ -1,7 +1,5 @@
 package ca.uhn.fhir.jpa.starter.interceptors;
 
-import java.sql.Timestamp;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -54,15 +52,12 @@ public class PullDataInterceptor {
       /* 2 Update Fhir Database using DAO and Mapper */
       IResourceMapper mapper = mapperRegistry.getMapper(resourceName);
       IFhirResourceDao<IBaseResource> dao = daoRegistry.getResourceDao(resourceName);
-      Timestamp latest = null; /* Remember latest timestamp reflected */
+
       while (result.next()) {
         String id = result.getString("id");
-        Timestamp timestamp = result.getTimestamp("ts");
-        if (latest == null || latest.before(timestamp)) {
-          latest = timestamp;
-        }
-
         boolean deleteFlag = result.getBoolean("deleted");
+        int version = result.getInt("version");
+
         IBaseResource resource = mapper.mapToResource(result);
         if (deleteFlag) {
           dao.delete(resource.getIdElement());
@@ -70,14 +65,14 @@ public class PullDataInterceptor {
           dao.update(resource);
         }
         /* Prevent missing new changes by checking timestamp */
-        String updateSql = String.format("UPDATE %s SET emr = false WHERE id = ? AND ts = ?", resourceName);
-        jdbcTemplate.update(updateSql, id, timestamp);
+        String updateSql = String.format("UPDATE %s SET emr = false WHERE id = ? AND version = ?", resourceName);
+        jdbcTemplate.update(updateSql, id, version);
       }
 
       if (req.getMethod().equals(HttpMethod.GET.toString())) {
         /* 3 Delete Mapping table */
-        String deleteSql = String.format("DELETE FROM %s WHERE ts <= ? AND emr = false AND fhir = false", resourceName);
-        jdbcTemplate.update(deleteSql, latest);
+        String deleteSql = String.format("DELETE FROM %s WHERE emr = false AND fhir = false", resourceName);
+        jdbcTemplate.update(deleteSql);
       }
       return true;
     } catch (Exception e) {

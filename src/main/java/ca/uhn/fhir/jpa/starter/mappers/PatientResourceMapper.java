@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.List;
 
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Patient;
@@ -36,6 +36,7 @@ public class PatientResourceMapper implements IResourceMapper {
     String patientGender = table.getString("PatientGender");
     String patientDateOfBirth = table.getString("PatientDateOfBirth");
     String patientMaritalStatus = table.getString("PatientMaritalStatus");
+    int mappingVersion = table.getInt("version");
 
     JSONObject jsonObj = new JSONObject();
     jsonObj.put("resourceType", "Patient");
@@ -45,11 +46,10 @@ public class PatientResourceMapper implements IResourceMapper {
     JSONObject maritalObject = new JSONObject();
     maritalObject.put("text", patientMaritalStatus);
     jsonObj.put("maritalStatus", maritalObject);
-    JSONObject metaObject = new JSONObject();
-    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-    Date lastUpdate = table.getDate("ts");
-    metaObject.put("lastUpdated", format.format(lastUpdate));
-    jsonObj.put("meta", metaObject);
+    JSONObject extensionObject = new JSONObject();
+    extensionObject.put("url", "mappingVersion");
+    extensionObject.put("valueInteger", mappingVersion);
+    jsonObj.put("extension", List.of(extensionObject));
 
     StringWriter stringWriter = new StringWriter();
     jsonObj.writeJSONString(stringWriter);
@@ -68,7 +68,15 @@ public class PatientResourceMapper implements IResourceMapper {
     namedParameters.addValue("PatientGender", patient.getGender().getDisplay());
     namedParameters.addValue("PatientDateOfBirth", birthDate);
     namedParameters.addValue("PatientMaritalStatus", patient.getMaritalStatus().getText());
-    namedParameters.addValue("ts", patient.getMeta().getLastUpdated());
+    String version = patient.getExtension().stream()
+        .filter(ext -> ext.getUrl().equals("mappingVersion"))
+        .map(ext -> ext.getValue().primitiveValue())
+        .findFirst().orElse("");
+    try {
+      namedParameters.addValue("version", Integer.parseInt(version));
+    } catch (NumberFormatException e) {
+      namedParameters.addValue("version", 0);
+    }
 
     return namedParameters;
   }

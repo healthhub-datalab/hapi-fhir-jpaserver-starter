@@ -50,8 +50,8 @@ public class PushDataInterceptor {
     String insertQuery = insertQuery(resourceName, columns, deleted);
     String setter = String.join(",",
         columns.stream().map(param -> String.format("%s = :%s", param, param)).collect(Collectors.toList()));
-    // TODO: Resource.ts cannot be used as unique key in DB
-    String updateQuery = String.format("UPDATE SET %s, deleted = %s, emr = false, fhir = true WHERE Patient.ts = :ts",
+    String updateQuery = String.format(
+        "UPDATE SET %s, deleted = %s, emr = false, fhir = true WHERE Patient.version = :version",
         setter,
         deleted);
     return String.format("%s ON CONFLICT (id) DO %s", insertQuery, updateQuery);
