@@ -35,8 +35,8 @@ public class MappingTableManager {
     List<Pair<IBaseResource, Boolean>> ret = new ArrayList<>();
     while (result.next()) {
       String id = result.getString("id");
-      Long version = result.getLong("version");
-      Boolean deleted = result.getBoolean("deleted");
+      boolean deleted = result.getBoolean("deleted");
+      int version = result.getInt("version");
 
       IResourceMapper mapper = registry.getMapper(resourceName);
       IBaseResource resource = mapper.pullResource(id, version, jdbcTemplate);

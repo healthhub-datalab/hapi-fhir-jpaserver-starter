@@ -2,16 +2,13 @@ package ca.uhn.fhir.jpa.starter.mappers;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.List;
 
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Patient;
 import org.json.simple.JSONObject;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 
@@ -32,7 +29,7 @@ public class PatientResourceMapper implements IResourceMapper {
   }
 
   @Override
-  public IBaseResource pullResource(String id, Long version, JdbcTemplate template) throws IOException {
+  public IBaseResource pullResource(String id, int version, JdbcTemplate template) throws IOException {
     String selectStatement = String.format("SELECT * FROM Patient WHERE id = %s AND version = %s", id, version);
     SqlRowSet table = template.queryForRowSet(selectStatement);
     if (!table.next()) {
@@ -43,6 +40,7 @@ public class PatientResourceMapper implements IResourceMapper {
     String patientGender = table.getString("PatientGender");
     String patientDateOfBirth = table.getString("PatientDateOfBirth");
     String patientMaritalStatus = table.getString("PatientMaritalStatus");
+    int mappingVersion = table.getInt("version");
 
     JSONObject jsonObj = new JSONObject();
     jsonObj.put("resourceType", "Patient");
@@ -52,7 +50,10 @@ public class PatientResourceMapper implements IResourceMapper {
     JSONObject maritalObject = new JSONObject();
     maritalObject.put("text", patientMaritalStatus);
     jsonObj.put("maritalStatus", maritalObject);
-    /* TODO: fill in version */
+    JSONObject extensionObject = new JSONObject();
+    extensionObject.put("url", "mappingVersion");
+    extensionObject.put("valueInteger", mappingVersion);
+    jsonObj.put("extension", List.of(extensionObject));
 
     StringWriter stringWriter = new StringWriter();
     jsonObj.writeJSONString(stringWriter);
@@ -68,8 +69,16 @@ public class PatientResourceMapper implements IResourceMapper {
     SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     String birthDate = format.format(patient.getBirthDate());
     String maritalStatus = patient.getMaritalStatus().getText();
-    /* TODO: fill in version */
-    String version = "version";
+    String version = patient.getExtension().stream()
+        .filter(ext -> ext.getUrl().equals("mappingVersion"))
+        .map(ext -> ext.getValue().primitiveValue())
+        .findFirst().orElse("");
+    int ver = 0;
+    try {
+      ver = Integer.parseInt(version);
+    } catch (NumberFormatException e) {
+      e.printStackTrace();
+    }
 
     if (!resource.getIdElement().hasIdPart()) {
       /* Newly created resource */
@@ -80,7 +89,7 @@ public class PatientResourceMapper implements IResourceMapper {
       String insertStatement = "INSERT INTO Patient (id, PatientGender, PatientDateOfBirth, PatientMaritalStatus, fhir, deleted) VALUES (?, ?, ?, ?, true, ?)";
       String updateStatement = "UPDATE SET PatientGender = ?, PatientDateOfBirth = ?, PatientMaritalStatus = ?, deleted = ?, fhir = true WHERE Patient.version = ?";
       String upsertStatement = String.format("%s ON CONFLICT (id) DO %s;", insertStatement, updateStatement);
-      template.update(upsertStatement, id, gender, birthDate, maritalStatus, deleted, gender, birthDate, maritalStatus, deleted, version);
+      template.update(upsertStatement, id, gender, birthDate, maritalStatus, deleted, gender, birthDate, maritalStatus, deleted, ver);
     }
   }
 

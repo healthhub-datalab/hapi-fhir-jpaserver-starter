@@ -14,7 +14,7 @@ spring:
     check-location: false
     baselineOnMigrate: true
   datasource:
-    url: 'jdbc:h2:file:./target/database/h2'
+    url: "jdbc:h2:file:./target/database/h2"
     #url: jdbc:h2:mem:test_mem
     username: sa
     password: null
@@ -33,13 +33,13 @@ spring:
       #If using postgres, then supply the value of ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgres94Dialect
 
       hibernate.dialect: ca.uhn.fhir.jpa.model.dialect.HapiFhirH2Dialect
-  #      hibernate.hbm2ddl.auto: update
-  #      hibernate.jdbc.batch_size: 20
-  #      hibernate.cache.use_query_cache: false
-  #      hibernate.cache.use_second_level_cache: false
-  #      hibernate.cache.use_structured_entries: false
-  #      hibernate.cache.use_minimal_puts: false
-  ###    These settings will enable fulltext search with lucene
+      #      hibernate.hbm2ddl.auto: update
+      #      hibernate.jdbc.batch_size: 20
+      #      hibernate.cache.use_query_cache: false
+      #      hibernate.cache.use_second_level_cache: false
+      #      hibernate.cache.use_structured_entries: false
+      #      hibernate.cache.use_minimal_puts: false
+      ###    These settings will enable fulltext search with lucene
       hibernate.search.enabled: false
   #      hibernate.search.backend.type: lucene
   #      hibernate.search.backend.analysis.configurer: ca.uhn.fhir.jpa.search.HapiHSearchAnalysisConfigurers$HapiLuceneAnalysisConfigurer
@@ -120,7 +120,7 @@ hapi:
       allow_Credentials: true
       # These are allowed_origin patterns, see: https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/cors/CorsConfiguration.html#setAllowedOriginPatterns-java.util.List-
       allowed_origin:
-        - '*'
+        - "*"
 
     # Search coordinator thread pool sizes
     search-coord-core-pool-size: 20
@@ -147,7 +147,7 @@ hapi:
     tester:
       home:
         name: Local Tester
-        server_address: 'http://localhost:8080/fhir'
+        server_address: "http://localhost:8080/fhir"
         refuse_to_fetch_third_party_urls: false
         fhir_version: R4
       global:
