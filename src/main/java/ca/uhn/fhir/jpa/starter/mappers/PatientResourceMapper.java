@@ -30,8 +30,8 @@ public class PatientResourceMapper implements IResourceMapper {
 
   @Override
   public IBaseResource pullResource(String id, int version, JdbcTemplate template) throws IOException {
-    String selectStatement = String.format("SELECT * FROM Patient WHERE id = '%s' AND version = %s", id, version);
-    SqlRowSet table = template.queryForRowSet(selectStatement);
+    String selectStatement = "SELECT * FROM Patient WHERE id = ? AND version = ?";
+    SqlRowSet table = template.queryForRowSet(selectStatement, id, version);
     if (!table.next()) {
       // Opimistic locking failed
     }
