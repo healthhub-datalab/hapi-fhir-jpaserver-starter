@@ -13,11 +13,22 @@ services:
     command: --lower_case_table_names=1
     restart: always
     environment:
-      MYSQL_DATABASE: 'hapi'
-      MYSQL_USER: 'admin'
-      MYSQL_PASSWORD: 'admin'
-      MYSQL_ROOT_PASSWORD: 'admin'
+      MYSQL_DATABASE: "hapi"
+      MYSQL_USER: "admin"
+      MYSQL_PASSWORD: "admin"
+      MYSQL_ROOT_PASSWORD: "admin"
     volumes:
       - hapi-fhir-mysql:/var/lib/mysql
+  hapi-fhir-postgres:
+    image: postgres:latest
+    container_name: hapi-fhir-postgres
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - ":5432"
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "admin"
+      POSTGRES_DB: "poc"
 volumes:
   hapi-fhir-mysql:
